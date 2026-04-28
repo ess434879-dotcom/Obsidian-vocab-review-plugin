@@ -129,6 +129,15 @@
   min-width: 88px;
 }
 
+.evr-actions .evr-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  width: 40px;
+  padding: 6px;
+}
+
 .evr-empty-actions {
   justify-content: center;
   margin: 12px 0;
@@ -158,6 +167,16 @@
 .evr-spelling-input-error::placeholder {
   color: var(--text-error);
   opacity: 1;
+}
+
+.evr-spelling-hint {
+  width: fit-content;
+  border: 1px solid rgba(224, 172, 46, 0.45);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(224, 172, 46, 0.12);
+  color: var(--text-normal);
+  font-weight: 600;
 }
 
 @keyframes evr-shake {

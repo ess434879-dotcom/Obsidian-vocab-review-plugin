@@ -1,4 +1,4 @@
-const { ItemView, Notice, Plugin, PluginSettingTab, Setting, TFile } = require("obsidian");
+const { ItemView, Notice, Plugin, PluginSettingTab, Setting, TFile, setIcon } = require("obsidian");
 
 const VIEW_TYPE = "english-vocab-review-view";
 
@@ -341,6 +341,7 @@ class SpellingSession {
     this.input = "";
     this.result = null;
     this.inputError = false;
+    this.hintLevel = 0;
     this.total = this.queue.length;
     this.done = 0;
   }
@@ -358,6 +359,7 @@ class SpellingSession {
     this.input = "";
     this.result = null;
     this.inputError = false;
+    this.hintLevel = 0;
 
     if (this.queue.length) {
       this.current = this.queue.shift();
@@ -412,6 +414,11 @@ class SpellingSession {
   skip() {
     if (!this.current || this.result) return;
     this.answer("", true);
+  }
+
+  showHint() {
+    if (!this.current || this.result) return;
+    this.hintLevel = Math.min(this.hintLevel + 1, 2);
   }
 }
 
@@ -535,6 +542,11 @@ class VocabReviewView extends ItemView {
     this.clearSpellingAdvanceTimer();
     this.spellingSession.skip();
     await this.plugin.savePluginData();
+    this.render();
+  }
+
+  showSpellingHint() {
+    this.spellingSession.showHint();
     this.render();
   }
 
@@ -675,10 +687,19 @@ class VocabReviewView extends ItemView {
     const actions = cardEl.createDiv({ cls: "evr-actions" });
 
     if (!session.result) {
+      const hint = actions.createEl("button", { cls: "evr-icon-button", attr: { "aria-label": "提示", title: "提示" } });
+      setIcon(hint, "lightbulb");
+      hint.addEventListener("click", () => this.showSpellingHint());
       const check = actions.createEl("button", { text: "提交 Enter" });
       check.addEventListener("click", () => this.checkSpelling(input.value));
       const skip = actions.createEl("button", { text: "跳过 Space" });
       skip.addEventListener("click", () => this.skipSpellingCard());
+      if (session.hintLevel > 0) {
+        const hintText = session.hintLevel === 1
+          ? `前两个字母：${card.word.slice(0, 2)}`
+          : `音标：${card.phonetic || "暂无音标"}`;
+        cardEl.createDiv({ cls: "evr-spelling-hint", text: hintText });
+      }
       input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
           event.preventDefault();
