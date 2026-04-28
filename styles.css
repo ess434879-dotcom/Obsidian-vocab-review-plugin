@@ -152,18 +152,37 @@
 
 .evr-spelling-result {
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   font-weight: 700;
+}
+
+.evr-spelling-result-label {
+  font-size: 14px;
+}
+
+.evr-spelling-result-word {
+  margin-top: 4px;
+  font-size: 24px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.evr-spelling-result-line {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .evr-spelling-correct {
   background: rgba(64, 160, 112, 0.14);
   color: var(--text-success);
+  border: 1px solid rgba(64, 160, 112, 0.45);
 }
 
 .evr-spelling-wrong {
   background: rgba(220, 80, 80, 0.14);
   color: var(--text-error);
+  border: 1px solid rgba(220, 80, 80, 0.45);
 }
 
 .evr-empty {

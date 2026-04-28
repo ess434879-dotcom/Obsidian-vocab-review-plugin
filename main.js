@@ -394,7 +394,8 @@ class SpellingSession {
     this.input = input;
     this.result = {
       correct,
-      expected: entry.word
+      expected: entry.word,
+      actual: input.trim()
     };
   }
 }
@@ -635,7 +636,14 @@ class VocabReviewView extends ItemView {
     }
 
     const result = cardEl.createDiv({ cls: session.result.correct ? "evr-spelling-result evr-spelling-correct" : "evr-spelling-result evr-spelling-wrong" });
-    result.setText(session.result.correct ? "正确" : `正确答案：${session.result.expected}`);
+    if (session.result.correct) {
+      result.createDiv({ cls: "evr-spelling-result-label", text: "正确" });
+      result.createDiv({ cls: "evr-spelling-result-word", text: session.result.expected });
+    } else {
+      result.createDiv({ cls: "evr-spelling-result-label", text: "错误" });
+      result.createDiv({ cls: "evr-spelling-result-line", text: `你的输入：${session.result.actual || "（空）"}` });
+      result.createDiv({ cls: "evr-spelling-result-word", text: `正确答案：${session.result.expected}` });
+    }
     const next = actions.createEl("button", { text: "下一题 Enter" });
     next.addEventListener("click", () => this.nextSpellingCard());
   }
