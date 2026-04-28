@@ -1,0 +1,120 @@
+.evr-root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+}
+
+.evr-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.evr-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.evr-stat {
+  display: flex;
+  min-height: 54px;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--background-secondary);
+}
+
+.evr-stat-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.evr-stat-value {
+  color: var(--text-normal);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.evr-card {
+  display: flex;
+  flex: 1;
+  min-height: 280px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 24px;
+  background: var(--background-primary);
+}
+
+.evr-word {
+  color: var(--text-normal);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.evr-phonetic {
+  color: var(--text-muted);
+  font-size: 17px;
+}
+
+.evr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evr-tag {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.evr-answer {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 16px;
+}
+
+.evr-answer h4 {
+  margin: 12px 0 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.evr-answer ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.evr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.evr-actions button {
+  min-width: 88px;
+}
+
+.evr-empty {
+  margin: auto;
+  max-width: 520px;
+  color: var(--text-muted);
+  line-height: 1.7;
+  text-align: center;
+}

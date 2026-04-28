@@ -1,0 +1,9 @@
+{
+  "id": "english-vocab-review",
+  "name": "English Vocab Review",
+  "version": "0.1.2",
+  "minAppVersion": "1.5.0",
+  "description": "Review words from 英语听力.md with a simple Ebbinghaus-style schedule.",
+  "author": "Codex",
+  "isDesktopOnly": false
+}
