@@ -160,3 +160,22 @@ This repository currently ships a built plugin directly:
 - `styles.css`
 
 No build step is required for local installation.
+
+## Version History
+
+| Version | Updated | Highlights |
+| --- | --- | --- |
+| `0.1.13` | 2026-04-28 16:36 | Added `重新学习今日内容` on the completion page for reviewing today's completed cards again without changing long-term scheduling. |
+| `0.1.12` | 2026-04-28 16:30 | Added the lightbulb hint button in spelling practice: first click shows the first two letters, second click shows phonetic transcription. |
+| `0.1.11` | 2026-04-28 16:24 | Added green correct-answer feedback with a short delay before advancing to the next spelling card; pressing `Enter` or `Space` again advances immediately. |
+| `0.1.10` | 2026-04-28 16:18 | Added empty-input validation in spelling practice with input shake, red border, and `请输入内容啊歪！` placeholder. |
+| `0.1.9` | 2026-04-28 16:06 | Changed spelling practice controls to `提交 Enter` and `跳过 Space`; skipping now shows red incorrect feedback and the correct answer. |
+| `0.1.8` | 2026-04-28 15:59 | Improved spelling result feedback with clearer green/red result blocks, user input display, and correct answer display. |
+| `0.1.7` | 2026-04-28 15:53 | Added `Enter`/`Space` support for advancing after spelling results are shown. |
+| `0.1.6` | 2026-04-28 15:49 | Added optional spelling practice after completing daily review, including skip-for-today support and spelling stats. |
+| `0.1.5` | 2026-04-28 12:43 | Improved layout for long words and phrases; answer sections now scroll more cleanly when content is long. |
+| `0.1.4` | 2026-04-28 11:18 | Added `记错了` correction after revealing an answer, allowing a mistaken `认识` rating to be treated as `不认识`. |
+| `0.1.3` | 2026-04-28 11:12 | Added structured field parsing for `词性`, `释义`, `英文`, `例句`, `派生`, `近义`, `搭配`, and `反义`. |
+| `0.1.2` | 2026-04-28 09:10 | Added lightweight progress stats for total words, learned words, unlearned words, daily new words, due reviews, and retry queue. |
+| `0.1.1` | 2026-04-28 09:10 | Changed the card flow so users rate `不认识` / `模糊` / `认识` before revealing the answer. |
+| `0.1.0` | 2026-04-28 09:10 | Initial local plugin with Markdown vocabulary parsing, daily review queue, spaced repetition, retry queue, and local progress storage. |
