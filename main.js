@@ -67,8 +67,10 @@ function parseVocabMarkdown(content) {
 
     const word = stripMarkup(wordMatch[1]);
     const tags = Array.from(header.matchAll(/\[([^\]]+)\]/g)).map((match) => match[1].trim());
+    const partOfSpeech = [];
     const chinese = [];
     const english = [];
+    const examples = [];
     const notes = [];
     let phonetic = "";
 
@@ -81,8 +83,29 @@ function parseVocabMarkdown(content) {
         return;
       }
 
+      const fieldMatch = line.match(/^(词性|释义|英文|例句|派生|近义|搭配|反义)：\s*(.+)$/);
+      if (fieldMatch) {
+        const [, field, value] = fieldMatch;
+        if (field === "词性") {
+          partOfSpeech.push(value);
+        } else if (field === "释义") {
+          chinese.push(value);
+        } else if (field === "英文") {
+          english.push(value);
+        } else if (field === "例句") {
+          examples.push(value);
+        } else {
+          notes.push(`${field}：${value}`);
+        }
+        return;
+      }
+
       if (/^\s*[-*]\s+/.test(rawLine) || /^[a-zA-Z][\w\s-]+:/.test(line)) {
-        notes.push(line);
+        if (/^Example:/i.test(line)) {
+          examples.push(line.replace(/^Example:\s*/i, ""));
+        } else {
+          notes.push(line);
+        }
         return;
       }
 
@@ -98,8 +121,10 @@ function parseVocabMarkdown(content) {
       word,
       phonetic,
       tags,
+      partOfSpeech,
       chinese,
       english,
+      examples,
       notes,
       sourceIndex: index
     });
@@ -439,8 +464,10 @@ class VocabReviewView extends ItemView {
     }
 
     const answer = cardEl.createDiv({ cls: "evr-answer" });
+    this.renderList(answer, "词性", card.partOfSpeech || []);
     this.renderList(answer, "中文释义", card.chinese);
     this.renderList(answer, "英文释义", card.english);
+    this.renderList(answer, "例句", card.examples || []);
     this.renderList(answer, "补充", card.notes);
 
     const next = actions.createEl("button", { text: "下一张 Space" });
