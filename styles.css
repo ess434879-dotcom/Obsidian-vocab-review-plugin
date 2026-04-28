@@ -129,6 +129,43 @@
   min-width: 88px;
 }
 
+.evr-empty-actions {
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.evr-spelling-card h3 {
+  margin: 0;
+  color: var(--text-normal);
+}
+
+.evr-spelling-input {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 18px;
+}
+
+.evr-spelling-result {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.evr-spelling-correct {
+  background: rgba(64, 160, 112, 0.14);
+  color: var(--text-success);
+}
+
+.evr-spelling-wrong {
+  background: rgba(220, 80, 80, 0.14);
+  color: var(--text-error);
+}
+
 .evr-empty {
   margin: auto;
   max-width: 520px;

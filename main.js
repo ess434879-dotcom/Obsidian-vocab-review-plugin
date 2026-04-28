@@ -7,7 +7,8 @@ const DEFAULT_SETTINGS = {
   dailyNewLimit: 20,
   dailyReviewLimit: 100,
   retrySpacing: 5,
-  maxRetriesPerWord: 2
+  maxRetriesPerWord: 2,
+  spellingLimit: 10
 };
 
 const DEFAULT_DATA = {
@@ -17,7 +18,9 @@ const DEFAULT_DATA = {
     date: "",
     introducedWords: [],
     completedWords: [],
-    reviewedCount: 0
+    reviewedCount: 0,
+    spellingSkipped: false,
+    spellingCompleted: false
   }
 };
 
@@ -50,6 +53,20 @@ function stripMarkup(value) {
 
 function getWordId(word) {
   return word.trim().toLowerCase();
+}
+
+function normalizeSpelling(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function isSpellingCandidate(entry) {
+  return /^[a-zA-Z][a-zA-Z'-]*$/.test(entry.word);
+}
+
+function maskExample(example, word) {
+  if (!example) return "";
+  const pattern = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+  return example.replace(pattern, "____");
 }
 
 function parseVocabMarkdown(content) {
@@ -313,11 +330,81 @@ class ReviewSession {
   }
 }
 
+class SpellingSession {
+  constructor(plugin, entries) {
+    this.plugin = plugin;
+    this.entries = entries;
+    this.entryById = new Map(entries.map((entry) => [entry.id, entry]));
+    this.queue = this.buildQueue();
+    this.retryQueue = [];
+    this.current = null;
+    this.input = "";
+    this.result = null;
+    this.total = this.queue.length;
+    this.done = 0;
+  }
+
+  buildQueue() {
+    const completed = this.plugin.data.daily.completedWords || [];
+    return completed
+      .map((id) => this.entryById.get(id))
+      .filter((entry) => entry && isSpellingCandidate(entry))
+      .slice(0, this.plugin.data.settings.spellingLimit)
+      .map((entry) => ({ entry, retryCount: 0 }));
+  }
+
+  nextCard() {
+    this.input = "";
+    this.result = null;
+
+    if (this.queue.length) {
+      this.current = this.queue.shift();
+      return this.current;
+    }
+
+    if (this.retryQueue.length) {
+      this.current = this.retryQueue.shift();
+      return this.current;
+    }
+
+    this.current = null;
+    this.plugin.data.daily.spellingCompleted = true;
+    return null;
+  }
+
+  answer(input) {
+    if (!this.current || this.result) return;
+
+    const entry = this.current.entry;
+    const expected = normalizeSpelling(entry.word);
+    const actual = normalizeSpelling(input);
+    const correct = actual === expected;
+    const state = Object.assign(createDefaultState(), this.plugin.data.reviewStates[entry.id] || {});
+    state.spellingReviews = (state.spellingReviews || 0) + 1;
+
+    if (!correct) {
+      state.spellingWrong = (state.spellingWrong || 0) + 1;
+      if ((this.current.retryCount || 0) < 1) {
+        this.retryQueue.push({ entry, retryCount: (this.current.retryCount || 0) + 1 });
+      }
+    }
+
+    this.plugin.data.reviewStates[entry.id] = state;
+    this.done += 1;
+    this.input = input;
+    this.result = {
+      correct,
+      expected: entry.word
+    };
+  }
+}
+
 class VocabReviewView extends ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.plugin = plugin;
     this.session = null;
+    this.spellingSession = null;
     this.keyHandler = this.handleKeyDown.bind(this);
   }
 
@@ -345,6 +432,7 @@ class VocabReviewView extends ItemView {
   async reload() {
     const entries = await this.plugin.loadEntries();
     this.session = new ReviewSession(this.plugin, entries);
+    this.spellingSession = null;
     await this.plugin.savePluginData();
     this.session.nextCard();
     this.render();
@@ -375,6 +463,31 @@ class VocabReviewView extends ItemView {
 
   async correctCurrentAsAgain() {
     this.session.correctAsAgain();
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
+  async startSpelling() {
+    this.spellingSession = new SpellingSession(this.plugin, this.session.entries);
+    this.spellingSession.nextCard();
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
+  async skipSpelling() {
+    this.plugin.data.daily.spellingSkipped = true;
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
+  async checkSpelling(input) {
+    this.spellingSession.answer(input);
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
+  async nextSpellingCard() {
+    this.spellingSession.nextCard();
     await this.plugin.savePluginData();
     this.render();
   }
@@ -432,20 +545,105 @@ class VocabReviewView extends ItemView {
     });
   }
 
+  getSpellingCandidateCount() {
+    if (!this.session) return 0;
+    const entryById = new Map(this.session.entries.map((entry) => [entry.id, entry]));
+    return (this.plugin.data.daily.completedWords || [])
+      .map((id) => entryById.get(id))
+      .filter((entry) => entry && isSpellingCandidate(entry))
+      .slice(0, this.plugin.data.settings.spellingLimit)
+      .length;
+  }
+
+  renderCompletion(root) {
+    this.renderStats(root);
+    const empty = root.createDiv({ cls: "evr-empty" });
+    const daily = this.plugin.data.daily;
+    const candidateCount = this.getSpellingCandidateCount();
+
+    if (daily.spellingCompleted) {
+      empty.createEl("h3", { text: "今天的学习已完成" });
+      empty.createEl("p", { text: "拼写巩固：已完成" });
+    } else if (daily.spellingSkipped) {
+      empty.createEl("h3", { text: "今天的学习已完成" });
+      empty.createEl("p", { text: "拼写巩固：已跳过" });
+    } else {
+      empty.createEl("h3", { text: "今天的复习完成了" });
+      empty.createEl("p", { text: candidateCount ? `可以继续做 ${candidateCount} 个单词的拼写巩固。` : "今天没有适合拼写巩固的单个英文单词。" });
+      const actions = empty.createDiv({ cls: "evr-actions evr-empty-actions" });
+      const start = actions.createEl("button", { text: "开始拼写巩固" });
+      start.disabled = candidateCount === 0;
+      start.addEventListener("click", () => this.startSpelling());
+      const skip = actions.createEl("button", { text: "跳过本次拼写巩固" });
+      skip.addEventListener("click", () => this.skipSpelling());
+    }
+
+    const reloadButton = empty.createEl("button", { text: "重新加载词库" });
+    reloadButton.addEventListener("click", () => this.reload());
+  }
+
+  renderSpelling(root) {
+    const session = this.spellingSession;
+    const item = session.current;
+
+    if (!item) {
+      this.renderCompletion(root);
+      return;
+    }
+
+    const card = item.entry;
+    const toolbar = root.createDiv({ cls: "evr-toolbar" });
+    toolbar.createSpan({ text: `拼写巩固 ${Math.min(session.done + 1, session.total)}/${session.total}` });
+    toolbar.createSpan({ text: session.retryQueue.length ? `待重做 ${session.retryQueue.length}` : "主动回忆" });
+
+    const cardEl = root.createDiv({ cls: "evr-card evr-spelling-card" });
+    cardEl.createEl("h3", { text: "拼写这个单词" });
+    this.renderList(cardEl, "中文释义", card.chinese);
+    this.renderList(cardEl, "英文释义", card.english);
+
+    const masked = maskExample((card.examples || [])[0], card.word);
+    if (masked) this.renderList(cardEl, "例句", [masked]);
+
+    const input = cardEl.createEl("input", {
+      cls: "evr-spelling-input",
+      type: "text",
+      placeholder: "输入英文单词"
+    });
+    input.value = session.input;
+    input.disabled = Boolean(session.result);
+
+    const actions = cardEl.createDiv({ cls: "evr-actions" });
+
+    if (!session.result) {
+      const check = actions.createEl("button", { text: "检查" });
+      check.addEventListener("click", () => this.checkSpelling(input.value));
+      const skip = actions.createEl("button", { text: "跳过" });
+      skip.addEventListener("click", () => this.nextSpellingCard());
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") this.checkSpelling(input.value);
+      });
+      setTimeout(() => input.focus(), 0);
+      return;
+    }
+
+    const result = cardEl.createDiv({ cls: session.result.correct ? "evr-spelling-result evr-spelling-correct" : "evr-spelling-result evr-spelling-wrong" });
+    result.setText(session.result.correct ? "正确" : `正确答案：${session.result.expected}`);
+    const next = actions.createEl("button", { text: "下一题" });
+    next.addEventListener("click", () => this.nextSpellingCard());
+  }
+
   render() {
     const container = this.contentEl;
     container.empty();
     const root = container.createDiv({ cls: "evr-root" });
 
+    if (this.spellingSession) {
+      this.renderSpelling(root);
+      return;
+    }
+
     if (!this.session || !this.session.current) {
-      this.renderStats(root);
-      const empty = root.createDiv({ cls: "evr-empty" });
-      empty.createEl("h3", { text: "今天的复习完成了" });
-      empty.createEl("p", {
-        text: "当前没有到期旧词，也没有新的每日词。你可以明天继续，或在设置里调整每日新词数量。"
-      });
-      const reloadButton = empty.createEl("button", { text: "重新加载词库" });
-      reloadButton.addEventListener("click", () => this.reload());
+      this.renderCompletion(root);
       return;
     }
 
@@ -550,6 +748,16 @@ class VocabReviewSettingTab extends PluginSettingTab {
           this.plugin.data.settings.retrySpacing = Number(value) || DEFAULT_SETTINGS.retrySpacing;
           await this.plugin.savePluginData();
         }));
+
+    new Setting(containerEl)
+      .setName("拼写巩固数量")
+      .setDesc("完成今日复习后，最多抽取多少个单词做拼写巩固。")
+      .addText((text) => text
+        .setValue(String(this.plugin.data.settings.spellingLimit))
+        .onChange(async (value) => {
+          this.plugin.data.settings.spellingLimit = Number(value) || DEFAULT_SETTINGS.spellingLimit;
+          await this.plugin.savePluginData();
+        }));
   }
 }
 
@@ -594,7 +802,9 @@ module.exports = class EnglishVocabReviewPlugin extends Plugin {
         date: today,
         introducedWords: [],
         completedWords: [],
-        reviewedCount: 0
+        reviewedCount: 0,
+        spellingSkipped: false,
+        spellingCompleted: false
       };
     }
   }
