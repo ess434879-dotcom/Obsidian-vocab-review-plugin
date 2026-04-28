@@ -439,6 +439,14 @@ class VocabReviewView extends ItemView {
   }
 
   handleKeyDown(event) {
+    if (this.spellingSession) {
+      if (this.spellingSession.result && (event.code === "Space" || event.key === "Enter")) {
+        event.preventDefault();
+        this.nextSpellingCard();
+      }
+      return;
+    }
+
     if (!this.session || !this.session.current) return;
     if (event.target && ["INPUT", "TEXTAREA"].includes(event.target.tagName)) return;
 
@@ -628,7 +636,7 @@ class VocabReviewView extends ItemView {
 
     const result = cardEl.createDiv({ cls: session.result.correct ? "evr-spelling-result evr-spelling-correct" : "evr-spelling-result evr-spelling-wrong" });
     result.setText(session.result.correct ? "正确" : `正确答案：${session.result.expected}`);
-    const next = actions.createEl("button", { text: "下一题" });
+    const next = actions.createEl("button", { text: "下一题 Enter" });
     next.addEventListener("click", () => this.nextSpellingCard());
   }
 
