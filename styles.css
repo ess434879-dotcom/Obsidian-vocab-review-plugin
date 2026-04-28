@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 16px;
   height: 100%;
+  min-height: 0;
   padding: 16px;
 }
 
@@ -48,21 +49,35 @@
   display: flex;
   flex: 1;
   min-height: 280px;
+  min-width: 0;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 16px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   padding: 24px;
   background: var(--background-primary);
+  overflow: hidden;
 }
 
 .evr-word {
+  max-width: 100%;
   color: var(--text-normal);
-  font-size: 40px;
+  font-size: clamp(32px, 5vw, 40px);
   font-weight: 700;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.evr-word-long {
+  font-size: clamp(28px, 4vw, 34px);
+  line-height: 1.18;
+}
+
+.evr-word-very-long {
+  font-size: clamp(24px, 3.5vw, 30px);
+  line-height: 1.2;
 }
 
 .evr-phonetic {
@@ -86,6 +101,9 @@
 
 .evr-answer {
   border-top: 1px solid var(--background-modifier-border);
+  min-height: 0;
+  max-height: 45vh;
+  overflow-y: auto;
   padding-top: 16px;
 }
 

@@ -462,7 +462,10 @@ class VocabReviewView extends ItemView {
     this.renderStats(root);
 
     const cardEl = root.createDiv({ cls: "evr-card" });
-    cardEl.createDiv({ cls: "evr-word", text: card.word });
+    const wordClasses = ["evr-word"];
+    if (card.word.length >= 18 || /\s|\//.test(card.word)) wordClasses.push("evr-word-long");
+    if (card.word.length >= 28) wordClasses.push("evr-word-very-long");
+    cardEl.createDiv({ cls: wordClasses.join(" "), text: card.word });
     if (card.phonetic) cardEl.createDiv({ cls: "evr-phonetic", text: card.phonetic });
 
     if (card.tags.length) {
