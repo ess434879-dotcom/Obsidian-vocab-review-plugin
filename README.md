@@ -105,13 +105,7 @@ The plugin settings include:
 - Retry spacing for missed words
 - Spelling practice word count
 
-The default vocabulary file path is:
-
-```text
-学习/英语学习/英语听力.md
-```
-
-You can change it in the plugin settings to point to another Markdown vocabulary note in your vault.
+Set the vocabulary file path in the plugin settings to point to your Markdown vocabulary note.
 
 ## Keyboard Shortcuts
 
