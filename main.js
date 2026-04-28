@@ -421,6 +421,7 @@ class VocabReviewView extends ItemView {
     this.plugin = plugin;
     this.session = null;
     this.spellingSession = null;
+    this.spellingAdvanceTimer = null;
     this.keyHandler = this.handleKeyDown.bind(this);
   }
 
@@ -442,10 +443,12 @@ class VocabReviewView extends ItemView {
   }
 
   async onClose() {
+    this.clearSpellingAdvanceTimer();
     document.removeEventListener("keydown", this.keyHandler);
   }
 
   async reload() {
+    this.clearSpellingAdvanceTimer();
     const entries = await this.plugin.loadEntries();
     this.session = new ReviewSession(this.plugin, entries);
     this.spellingSession = null;
@@ -458,6 +461,7 @@ class VocabReviewView extends ItemView {
     if (this.spellingSession) {
       if (this.spellingSession.result && (event.code === "Space" || event.key === "Enter")) {
         event.preventDefault();
+        this.clearSpellingAdvanceTimer();
         this.nextSpellingCard();
       } else if (!this.spellingSession.result && event.code === "Space") {
         event.preventDefault();
@@ -515,18 +519,37 @@ class VocabReviewView extends ItemView {
     }
     await this.plugin.savePluginData();
     this.render();
+    if (this.spellingSession.result && this.spellingSession.result.correct) {
+      this.scheduleSpellingAdvance();
+    }
   }
 
   async nextSpellingCard() {
+    this.clearSpellingAdvanceTimer();
     this.spellingSession.nextCard();
     await this.plugin.savePluginData();
     this.render();
   }
 
   async skipSpellingCard() {
+    this.clearSpellingAdvanceTimer();
     this.spellingSession.skip();
     await this.plugin.savePluginData();
     this.render();
+  }
+
+  scheduleSpellingAdvance() {
+    this.clearSpellingAdvanceTimer();
+    this.spellingAdvanceTimer = window.setTimeout(() => {
+      this.spellingAdvanceTimer = null;
+      this.nextSpellingCard();
+    }, 1500);
+  }
+
+  clearSpellingAdvanceTimer() {
+    if (!this.spellingAdvanceTimer) return;
+    window.clearTimeout(this.spellingAdvanceTimer);
+    this.spellingAdvanceTimer = null;
   }
 
   nextCard() {
@@ -657,7 +680,11 @@ class VocabReviewView extends ItemView {
       const skip = actions.createEl("button", { text: "跳过 Space" });
       skip.addEventListener("click", () => this.skipSpellingCard());
       input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") this.checkSpelling(input.value);
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          this.checkSpelling(input.value);
+        }
       });
       input.addEventListener("input", () => {
         if (!session.inputError) return;
@@ -671,7 +698,7 @@ class VocabReviewView extends ItemView {
 
     const result = cardEl.createDiv({ cls: session.result.correct ? "evr-spelling-result evr-spelling-correct" : "evr-spelling-result evr-spelling-wrong" });
     if (session.result.correct) {
-      result.createDiv({ cls: "evr-spelling-result-label", text: "正确" });
+      result.createDiv({ cls: "evr-spelling-result-label", text: "答案正确啦！！！" });
       result.createDiv({ cls: "evr-spelling-result-word", text: session.result.expected });
     } else {
       result.createDiv({ cls: "evr-spelling-result-label", text: "错误" });
