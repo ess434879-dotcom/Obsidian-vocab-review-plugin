@@ -340,6 +340,7 @@ class SpellingSession {
     this.current = null;
     this.input = "";
     this.result = null;
+    this.inputError = false;
     this.total = this.queue.length;
     this.done = 0;
   }
@@ -356,6 +357,7 @@ class SpellingSession {
   nextCard() {
     this.input = "";
     this.result = null;
+    this.inputError = false;
 
     if (this.queue.length) {
       this.current = this.queue.shift();
@@ -372,8 +374,14 @@ class SpellingSession {
     return null;
   }
 
-  answer(input) {
-    if (!this.current || this.result) return;
+  answer(input, allowEmpty = false) {
+    if (!this.current || this.result) return false;
+
+    if (!allowEmpty && !input.trim()) {
+      this.inputError = true;
+      this.input = "";
+      return false;
+    }
 
     const entry = this.current.entry;
     const expected = normalizeSpelling(entry.word);
@@ -397,11 +405,13 @@ class SpellingSession {
       expected: entry.word,
       actual: input.trim()
     };
+    this.inputError = false;
+    return true;
   }
 
   skip() {
     if (!this.current || this.result) return;
-    this.answer("");
+    this.answer("", true);
   }
 }
 
@@ -498,7 +508,11 @@ class VocabReviewView extends ItemView {
   }
 
   async checkSpelling(input) {
-    this.spellingSession.answer(input);
+    const changed = this.spellingSession.answer(input);
+    if (!changed) {
+      this.render();
+      return;
+    }
     await this.plugin.savePluginData();
     this.render();
   }
@@ -628,9 +642,9 @@ class VocabReviewView extends ItemView {
     if (masked) this.renderList(cardEl, "例句", [masked]);
 
     const input = cardEl.createEl("input", {
-      cls: "evr-spelling-input",
+      cls: session.inputError ? "evr-spelling-input evr-spelling-input-error" : "evr-spelling-input",
       type: "text",
-      placeholder: "输入英文单词"
+      placeholder: session.inputError ? "请输入内容啊歪！" : "输入英文单词"
     });
     input.value = session.input;
     input.disabled = Boolean(session.result);
@@ -644,6 +658,12 @@ class VocabReviewView extends ItemView {
       skip.addEventListener("click", () => this.skipSpellingCard());
       input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") this.checkSpelling(input.value);
+      });
+      input.addEventListener("input", () => {
+        if (!session.inputError) return;
+        session.inputError = false;
+        input.classList.remove("evr-spelling-input-error");
+        input.placeholder = "输入英文单词";
       });
       setTimeout(() => input.focus(), 0);
       return;
