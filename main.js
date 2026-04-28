@@ -398,6 +398,11 @@ class SpellingSession {
       actual: input.trim()
     };
   }
+
+  skip() {
+    if (!this.current || this.result) return;
+    this.answer("");
+  }
 }
 
 class VocabReviewView extends ItemView {
@@ -444,6 +449,9 @@ class VocabReviewView extends ItemView {
       if (this.spellingSession.result && (event.code === "Space" || event.key === "Enter")) {
         event.preventDefault();
         this.nextSpellingCard();
+      } else if (!this.spellingSession.result && event.code === "Space") {
+        event.preventDefault();
+        this.skipSpellingCard();
       }
       return;
     }
@@ -497,6 +505,12 @@ class VocabReviewView extends ItemView {
 
   async nextSpellingCard() {
     this.spellingSession.nextCard();
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
+  async skipSpellingCard() {
+    this.spellingSession.skip();
     await this.plugin.savePluginData();
     this.render();
   }
@@ -624,10 +638,10 @@ class VocabReviewView extends ItemView {
     const actions = cardEl.createDiv({ cls: "evr-actions" });
 
     if (!session.result) {
-      const check = actions.createEl("button", { text: "检查" });
+      const check = actions.createEl("button", { text: "提交 Enter" });
       check.addEventListener("click", () => this.checkSpelling(input.value));
-      const skip = actions.createEl("button", { text: "跳过" });
-      skip.addEventListener("click", () => this.nextSpellingCard());
+      const skip = actions.createEl("button", { text: "跳过 Space" });
+      skip.addEventListener("click", () => this.skipSpellingCard());
       input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") this.checkSpelling(input.value);
       });
