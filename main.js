@@ -213,6 +213,27 @@ class ReviewSession {
     this.normalTotal = this.normalQueue.length;
   }
 
+  buildReviewAgainQueue() {
+    const completed = this.plugin.data.daily.completedWords || [];
+    const seen = new Set();
+    this.normalQueue = completed
+      .map((id) => this.entryById.get(id))
+      .filter((entry) => {
+        if (!entry || seen.has(entry.id)) return false;
+        seen.add(entry.id);
+        return true;
+      })
+      .map((entry) => ({ entry, isRetry: false, retryCount: 0, reviewOnly: true }));
+    this.retryQueue = [];
+    this.current = null;
+    this.answerVisible = false;
+    this.selectedRating = "";
+    this.preAnswerState = null;
+    this.normalTotal = this.normalQueue.length;
+    this.normalDone = 0;
+    this.cardsSinceRetry = 0;
+  }
+
   mixQueues(dueEntries, newEntries) {
     const queue = [];
     let dueIndex = 0;
@@ -277,6 +298,12 @@ class ReviewSession {
 
   answer(rating) {
     if (!this.current || this.selectedRating) return;
+
+    if (this.current.reviewOnly) {
+      this.selectedRating = rating;
+      this.answerVisible = true;
+      return;
+    }
 
     this.preAnswerState = Object.assign(createDefaultState(), this.plugin.data.reviewStates[this.current.entry.id] || {});
     this.applyRating(rating, this.preAnswerState, true);
@@ -538,6 +565,15 @@ class VocabReviewView extends ItemView {
     this.render();
   }
 
+  async reviewTodayAgain() {
+    this.clearSpellingAdvanceTimer();
+    this.spellingSession = null;
+    this.session.buildReviewAgainQueue();
+    this.session.nextCard();
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
   async skipSpellingCard() {
     this.clearSpellingAdvanceTimer();
     this.spellingSession.skip();
@@ -650,6 +686,9 @@ class VocabReviewView extends ItemView {
       skip.addEventListener("click", () => this.skipSpelling());
     }
 
+    const reviewAgain = empty.createEl("button", { text: "重新学习今日内容" });
+    reviewAgain.disabled = !(daily.completedWords || []).length;
+    reviewAgain.addEventListener("click", () => this.reviewTodayAgain());
     const reloadButton = empty.createEl("button", { text: "重新加载词库" });
     reloadButton.addEventListener("click", () => this.reload());
   }
