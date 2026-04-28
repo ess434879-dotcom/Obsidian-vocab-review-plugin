@@ -153,6 +153,7 @@ class ReviewSession {
     this.current = null;
     this.answerVisible = false;
     this.selectedRating = "";
+    this.preAnswerState = null;
     this.normalTotal = 0;
     this.normalDone = 0;
     this.todayDueIds = [];
@@ -225,6 +226,7 @@ class ReviewSession {
   nextCard() {
     this.answerVisible = false;
     this.selectedRating = "";
+    this.preAnswerState = null;
 
     const retryIndex = this.retryQueue.findIndex((item) => this.cardsSinceRetry >= this.plugin.data.settings.retrySpacing);
     const pendingNew = this.normalQueue.some((item) => !this.plugin.data.reviewStates[item.entry.id]);
@@ -259,10 +261,21 @@ class ReviewSession {
   answer(rating) {
     if (!this.current || this.selectedRating) return;
 
+    this.preAnswerState = Object.assign(createDefaultState(), this.plugin.data.reviewStates[this.current.entry.id] || {});
+    this.applyRating(rating, this.preAnswerState, true);
+  }
+
+  correctAsAgain() {
+    if (!this.current || this.selectedRating === "again" || !this.preAnswerState) return;
+
+    this.applyRating("again", this.preAnswerState, false);
+  }
+
+  applyRating(rating, baseState, countReview) {
     const today = todayString();
     const entry = this.current.entry;
     const data = this.plugin.data;
-    const state = Object.assign(createDefaultState(), data.reviewStates[entry.id] || {});
+    const state = Object.assign(createDefaultState(), baseState || {});
     const currentStage = Math.max(0, Math.min(state.stage || 0, INTERVALS.length - 1));
 
     state.reviews += 1;
@@ -293,7 +306,7 @@ class ReviewSession {
     const completed = new Set(data.daily.completedWords || []);
     completed.add(entry.id);
     data.daily.completedWords = Array.from(completed);
-    data.daily.reviewedCount = (data.daily.reviewedCount || 0) + 1;
+    if (countReview) data.daily.reviewedCount = (data.daily.reviewedCount || 0) + 1;
 
     this.selectedRating = rating;
     this.answerVisible = true;
@@ -356,6 +369,12 @@ class VocabReviewView extends ItemView {
 
   async answerCurrent(rating) {
     this.session.answer(rating);
+    await this.plugin.savePluginData();
+    this.render();
+  }
+
+  async correctCurrentAsAgain() {
+    this.session.correctAsAgain();
     await this.plugin.savePluginData();
     this.render();
   }
@@ -470,6 +489,10 @@ class VocabReviewView extends ItemView {
     this.renderList(answer, "例句", card.examples || []);
     this.renderList(answer, "补充", card.notes);
 
+    if (this.session.selectedRating !== "again") {
+      const mistake = actions.createEl("button", { text: "记错了" });
+      mistake.addEventListener("click", () => this.correctCurrentAsAgain());
+    }
     const next = actions.createEl("button", { text: "下一张 Space" });
     next.addEventListener("click", () => this.nextCard());
   }
